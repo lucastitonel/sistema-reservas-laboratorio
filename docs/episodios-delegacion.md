@@ -2,35 +2,35 @@
 
 Completar cada episodio después de que ocurra. No inventar interacciones, errores, correcciones ni resultados. No adjuntar transcripciones completas.
 
-## Episodio 1 — Persistencia e inventario
-- Objetivo y requisito relacionado:
-- Contexto suministrado:
-- Extracto de instrucción enviada al agente:
-- Acción/resultado informado por el agente:
-- Archivos o cambios producidos:
-- Verificación humana realizada (comando y resultado):
-- Decisión humana: aceptar / corregir / rechazar:
-- Motivo:
-- Evidencia: archivo, prueba, commit o salida:
+## Episodio 1 — Análisis de requisitos y diseño de la arquitectura
+- **Objetivo y requisito relacionado:** Analizar el repositorio y leer SPEC.md y AGENTS.md para comprender el sistema de reservas de laboratorio. Resumir requisitos funcionales, reglas de negocio, validaciones, persistencia SQLite, arquitectura, casos de prueba e identificar ambigüedades.
+- **Contexto suministrado:** Proyecto académico para Tópicos Avanzados de Ingeniería del Software. Sistema local de reservas de equipamiento para laboratorio usando Python y SQLite. Instrucciones en AGENTS.md sobre restricciones y procedimiento de trabajo.
+- **Extracto de instrucción enviada al agente:** "Quiero que primero analices el repositorio y leas detenidamente los archivos SPEC.md y AGENTS.md. Necesito que: 1. Resumas los requisitos funcionales y las reglas de negocio. 2. Identifiques las validaciones necesarias. 3. Expliques cómo implementarías la persistencia con SQLite. 4. Propongas una arquitectura sencilla y una organización de módulos. 5. Identifiques los casos de prueba necesarios. 6. Señales cualquier ambigüedad o posible contradicción en la especificación. Por el momento, NO escribas código ni modifiques archivos."
+- **Acción/resultado informado por el agente:** El agente leyó SPEC.md, AGENTS.md, README.md, requirements.txt, .gitignore, data/inventory.json y archivos de documentación. Presentó análisis completo incluyendo: resumen de 5 requisitos funcionales (RF-01 a RF-05), 10 reglas de negocio (RN-01 a RN-10), validaciones necesarias, propuesta de esquema SQLite, arquitectura por capas con separación de responsabilidades, organización de directorios, casos de prueba, y 5 ambigüedades identificadas (límite solicitante, duración mínima, formato de salida, UUID versión, comportamiento cancelación ya cancelada).
+- **Archivos o cambios producidos:** Ningún archivo modificado. Solo lectura y análisis.
+- **Verificación humana realizada (comando y resultado):** No se ejecutaron comandos. Fue una revisión de análisis conceptual.
+- **Decisión humana:** Aceptar con ajustes. El usuario solicitó cambiar la interfaz de consola a Streamlit y ajustar la propuesta técnica.
+- **Motivo:** La arquitectura base era adecuada pero se requería interfaz web local con Streamlit en lugar de consola.
+- **Evidencia:** Respuesta del agente con análisis completo de SPEC.md y propuesta técnica.
 
-## Episodio 2 — Reglas de reservas
-- Objetivo y requisito relacionado:
-- Contexto suministrado:
-- Extracto de instrucción enviada al agente:
-- Acción/resultado informado por el agente:
-- Archivos o cambios producidos:
-- Verificación humana realizada (comando y resultado):
-- Decisión humana: aceptar / corregir / rechazar:
-- Motivo:
-- Evidencia: archivo, prueba, commit o salida:
+## Episodio 2 — Implementación de inventario, modelos y persistencia SQLite
+- **Objetivo y requisito relacionado:** Implementar la primera etapa: inventario y persistencia SQLite. Crear estructura de directorios, implementar src/models.py, src/inventory.py, src/database.py, y pruebas automatizadas. Ejecutar pruebas y verificar resultados.
+- **Contexto suministrado:** Entorno virtual ya configurado con Python 3.15.2, pytest 9.2.0 y streamlit 1.66.1. Git inicializado. Especificación técnica aprobada con ajustes para Streamlit.
+- **Extracto de instrucción enviada al agente:** "PRIMERA ETAPA: Inventario y persistencia SQLite. Objetivos: Revisar la estructura actual. Implementar src/inventory.py para cargar y validar el inventario fijo. Implementar src/models.py con la estructura de datos de las reservas. Implementar src/database.py para inicializar SQLite, crear tablas, insertar/consultar reservas, actualizar estado, persistir fechas en ISO 8601 normalizado a UTC. Mantener reservas canceladas en DB. Crear pruebas automatizadas. Ejecutar las pruebas y mostrar sus resultados reales."
+- **Acción/resultado informado por el agente:** Creó estructura de directorios src/ y tests/. Implementó src/models.py con dataclass Reserva y validaciones (solicitante max 200 chars, fechas). Implementó src/inventory.py con InventoryManager que carga JSON y valida IDs. Implementó src/database.py con DatabaseManager, métodos CRUD, conversión datetime a UTC ISO. Creó 3 archivos de pruebas: test_models.py (13 pruebas), test_inventory.py (8 pruebas), test_database.py (13 pruebas). Detectó error de importación (timezone faltante en models.py) y lo corrigió. Ejecutó pytest: resultado inicial 5 errores por importación, tras corrección 34 pruebas pasaron.
+- **Archivos o cambios producidos:** Creados: src/__init__.py, src/models.py, src/inventory.py, src/database.py, tests/__init__.py, tests/test_models.py, tests/test_inventory.py, tests/test_database.py. Modificados: src/models.py (corrección de import timezone).
+- **Verificación humana realizada (comando y resultado):** Usuario revisó el reporte del agente indicando 34 pruebas pasadas. No ejecutó comandos de verificación adicionales.
+- **Decisión humana:** Aceptar la primera etapa con correcciones previas a subir a GitHub.
+- **Motivo:** La implementación cumplía los objetivos pero se requería revisión técnica adicional antes del commit.
+- **Evidencia:** Archivos de código fuente en src/ y tests/. Salida de pytest mostrando 34 passed.
 
-## Episodio 3 — Pruebas y verificación
-- Objetivo y requisito relacionado:
-- Contexto suministrado:
-- Extracto de instrucción enviada al agente:
-- Acción/resultado informado por el agente:
-- Archivos o cambios producidos:
-- Verificación humana realizada (comando y resultado):
-- Decisión humana: aceptar / corregir / rechazar:
-- Motivo:
-- Evidencia: archivo, prueba, commit o salida:
+## Episodio 3 — Revisión técnica, corrección de fechas ISO y push a GitHub
+- **Objetivo y requisito relacionado:** Revisar técnicamente los archivos de la primera etapa antes de subir a GitHub. Verificar especialmente responsabilidad de fechas y validación ISO 8601. Corregir problemas identificados. Ejecutar pruebas nuevamente. Realizar commit y push a GitHub.
+- **Contexto suministrado:** Repositorio remoto creado en https://github.com/lucastitonel/sistema-reservas-laboratorio. Usuario autorizó correcciones y push.
+- **Extracto de instrucción enviada al agente:** "Revisá los archivos src/models.py, src/inventory.py, src/database.py y sus pruebas. Necesito verificar especialmente: Responsabilidad de fechas (reservations.py debe validar y normalizar a UTC, database.py almacenar valores normalizados). Validación ISO 8601: las fechas almacenadas deben incluir explícitamente offset UTC (+00:00), no asumir UTC silenciosamente. Si todo está correcto, realizá git add, commit y push."
+- **Acción/resultado informado por el agente:** Revisó los 6 archivos de código y pruebas. Identificó problema crítico: iso_utc_a_datetime() en database.py asumía UTC silenciosamente cuando faltaba offset (línea 133: dt.replace(tzinfo=timezone.utc)). Propuso corrección: lanzar ValueError si no hay offset o si offset no es +00:00. Modificó database.py para validar offset estrictamente. Modificó test_iso_utc_a_datetime_sin_offset para esperar ValueError. Agregó test_iso_utc_a_datetime_offset_no_utc para probar rechazo de offsets +03:00 y -05:00. Ejecutó pytest: 35 pruebas pasaron (aumentó de 34 a 35). Realizó git add, git commit (hash a0df565), git push -u origin main. Verificó exclusiones en .gitignore (.venv/, __pycache__/, .pytest_cache/, data/*.db excluidos; data/inventory.json incluido).
+- **Archivos o cambios producidos:** Modificados: src/database.py (método iso_utc_a_datetime()), tests/test_database.py (modificación de prueba existente + nueva prueba). Commit a0df565 en rama main. Push a origin/main exitoso.
+- **Verificación humana realizada (comando y resultado):** Usuario revisó el reporte del agente sobre las correcciones implementadas y las 35 pruebas pasantes. Aprobó que el agente realizara las comprobaciones previas (git status, .gitignore, remoto, rama) y autorizó la ejecución de git add, commit y push.
+- **Decisión humana:** Aceptar correcciones y autorizar commit y push.
+- **Motivo:** Las 35 pruebas pasaban, la validación de fechas ISO era estricta, y las exclusiones de .gitignore eran correctas.
+- **Evidencia:** Salida de pytest mostrando 35 passed. Salida de git commit mostrando hash a0df565. Salida de git push mostrando éxito. URL del repositorio: https://github.com/lucastitonel/sistema-reservas-laboratorio
