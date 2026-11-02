@@ -1,0 +1,22 @@
+[
+  {
+    "id": "MIC-01",
+    "equipment": "Microscopio digital"
+  },
+  {
+    "id": "MIC-02",
+    "equipment": "Microscopio digital"
+  },
+  {
+    "id": "OSC-01",
+    "equipment": "Osciloscopio"
+  },
+  {
+    "id": "MUL-01",
+    "equipment": "Multímetro"
+  },
+  {
+    "id": "FUE-01",
+    "equipment": "Fuente de alimentación"
+  }
+]
