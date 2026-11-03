@@ -83,5 +83,75 @@ Registrar decisiones reales, con fecha, contexto, alternativas consideradas, dec
 - **Estado:** Confirmado.
 - **Decisión:** Usar pytest para pruebas unitarias. 35 pruebas implementadas para modelos, inventario y persistencia.
 - **Motivo:** Verificación automatizada de funcionalidad. pytest es compatible con Python 3.15.2.
-- **Consecuencia:** test_models.py (13 pruebas), test_inventory.py (8 pruebas), test_database.py (14 pruebas). Todas las pruebas pasan.
+- **Consecuencia:** test_models.py (12 pruebas), test_inventory.py (8 pruebas), test_database.py (14 pruebas). Todas las pruebas pasan.
 - **Fecha:** 2026-11-02 (Episodio 2 y 3)
+
+## D-013 — Separación de responsabilidades implementada
+- **Estado:** Confirmado.
+- **Decisión:** Mover métodos de conversión datetime_a_utc_iso e iso_utc_a_datetime de database.py a reservations.py. database.py solo acepta strings ISO UTC ya normalizados.
+- **Motivo:** Acordado en D-011 durante Episodio 3 para evitar duplicación de conversiones y clarificar responsabilidades.
+- **Consecuencia:** reservations.py valida y normaliza fechas a UTC antes de operaciones de negocio. database.py persiste valores ya normalizados. Eliminados métodos de conversión de database.py.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-014 — Función única de superposición
+- **Estado:** Confirmado.
+- **Decisión:** Implementar existe_superposicion() en reservations.py como función única compartida por consulta de disponibilidad y creación de reservas.
+- **Motivo:** RN-09 de SPEC.md exige que consulta y creación usen exactamente la misma regla de superposición.
+- **Consecuencia:** Ambas operaciones invocan existe_superposicion() con la regla inicio_nuevo < fin_existente AND fin_nuevo > inicio_existente. Solo considera reservas activas de la misma unidad.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-015 — Lógica de negocio centralizada
+- **Estado:** Confirmado.
+- **Decisión:** Crear src/reservations.py con ReservationManager como módulo central de lógica de negocio. Interfaz (app.py) invoca a reservations.py, no a database.py directamente.
+- **Motivo:** Separación clara entre interfaz, negocio y persistencia según arquitectura de SPEC.md.
+- **Consecuencia:** ReservationManager implementa crear_reserva, consultar_disponibilidad, cancelar_reserva y listar_reservas. Todas las validaciones y reglas de negocio están centralizadas.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-016 — Normalización de solicitante
+- **Estado:** Confirmado.
+- **Decisión:** Normalizar solicitante con strip() antes de validar y almacenar.
+- **Motivo:** AGENTS.md RN-02 y SPEC.md establecen esta normalización.
+- **Consecuencia:** crear_reserva() aplica strip() al solicitante antes de validar y persistir.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-017 — Rechazo de cancelación repetida
+- **Estado:** Confirmado.
+- **Decisión:** Rechazar intento de cancelar una reserva ya cancelada sin modificar el registro.
+- **Motivo:** SPEC.md y AGENTS.md exigen comportamiento claro y sin modificaciones silenciosas.
+- **Consecuencia:** cancelar_reserva() verifica estado antes de cancelar y retorna error si ya está cancelada.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-018 — Pruebas de lógica de negocio
+- **Estado:** Confirmado.
+- **Decisión:** Crear tests/test_reservations.py con 24 pruebas para lógica de negocio de reservas.
+- **Motivo:** Verificar todas las reglas de negocio, validaciones y comportamiento de superposición.
+- **Consecuencia:** 54 pruebas totales pasando. Desglose actual: test_models.py (12 pruebas), test_inventory.py (8 pruebas), test_database.py (10 pruebas), test_reservations.py (24 pruebas). Pruebas cubren creación válida, unidad inexistente, solicitante inválido, fechas sin zona horaria, superposición, intervalos consecutivos, unidades diferentes, consistencia consulta-creación, cancelación, liberación de intervalo, normalización UTC.
+- **Fecha:** 2026-11-02 (Episodio 4)
+
+## D-019 — Interfaz Streamlit
+- **Estado:** Confirmado.
+- **Decisión:** Implementar src/app.py como punto de entrada de la aplicación web local con Streamlit.
+- **Motivo:** SPEC.md y AGENTS.md establecen interfaz web local sencilla accesible desde navegador.
+- **Consecuencia:** app.py implementa cuatro secciones: Panel Principal (inventario y resumen), Nueva Reserva (formulario de creación), Consultar Disponibilidad (consulta de intervalos), Historial y Cancelaciones (listado y cancelación). La interfaz invoca ReservationManager sin duplicar lógica de negocio. Zona horaria de controles Streamlit interpretada en America/Argentina/Buenos_Aires. Aplicación inicia con streamlit run src/app.py en puerto 8501.
+- **Fecha:** 2026-11-03 (Episodio 5)
+
+## D-020 — Manejo de fechas en Streamlit
+- **Estado:** Confirmado.
+- **Decisión:** Implementar función auxiliar a_aware_buenos_aires() para convertir datetimes naive de st.datetime_input() a datetimes aware de Argentina antes de pasar a ReservationManager.
+- **Motivo:** Detectado durante revisión que st.datetime_input() no tiene parámetro timezone y siempre devuelve datetimes naive. El código original usaba un parámetro inexistente timezone=ZONA_HORARIA. ReservationManager rechaza datetimes sin zona horaria.
+- **Consecuencia:** Eliminado parámetro timezone inexistente de st.datetime_input(). Agregada función a_aware_buenos_aires() que interpreta datetimes naive como hora local de Argentina usando replace(tzinfo=ZONA_HORARIA). Agregadas 4 pruebas en tests/test_app.py. ReservationManager sigue siendo responsable de normalizar a UTC.
+- **Fecha:** 2026-11-03 (Episodio 5 - corrección)
+
+## D-021 — Conexiones SQLite y Streamlit
+- **Estado:** Confirmado.
+- **Decisión:** Modificar DatabaseManager para abrir y cerrar una conexión nueva por cada operación, en lugar de mantener una conexión persistente compartida.
+- **Motivo:** Detectado error "SQLite objects created in a thread can only be used in that same thread" durante pruebas manuales. @st.cache_resource cachea ReservationManager, que mantenía una conexión SQLite persistente. Streamlit ejecuta reruns en hilos diferentes, causando el error de check_same_thread.
+- **Consecuencia:** Eliminada conexión persistente _connection en DatabaseManager. Cada método (inicializar_db, crear_reserva, cancelar_reserva, obtener_reserva_por_id, obtener_reservas) ahora crea una nueva conexión con _get_connection(), ejecuta la operación y cierra la conexión en bloque finally. Persistencia se mantiene en el archivo SQLite. Actualizada prueba test_inicializar_db_crea_tabla que accedía a método interno eliminado.
+- **Fecha:** 2026-11-03 (Episodio 5 - corrección)
+
+## D-022 — Estado de confirmación de cancelaciones
+- **Estado:** Confirmado.
+- **Decisión:** Implementar st.session_state para conservar el ID de la reserva pendiente de cancelación entre reruns de Streamlit.
+- **Motivo:** Detectado durante pruebas manuales que el flujo de cancelación no funcionaba. El código original mostraba el botón de confirmación en el mismo rerun que el botón de cancelación, pero Streamlit redibuja la interfaz desde cero en cada rerun, haciendo que el mensaje desapareciera. El botón de confirmación nunca se ejecutaba.
+- **Consecuencia:** Agregada inicialización de st.session_state.cancel_confirm en main(). Al presionar "Cancelar Reserva", se guarda el ID en session_state y se ejecuta st.rerun(). En el siguiente rerun, si session_state.cancel_confirm coincide con el ID de la reserva, se muestran botones "Confirmar Cancelación" y "No Cancelar". El estado se limpia después de confirmar o abortar.
+- **Fecha:** 2026-11-03 (Episodio 5 - corrección)

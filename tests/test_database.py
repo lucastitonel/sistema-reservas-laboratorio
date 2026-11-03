@@ -35,19 +35,14 @@ class TestDatabaseManager:
             fin_utc=fin
         )
     
-    def test_inicializar_db_crea_tabla(self, temp_db):
+    def test_inicializar_db_crea_tabla(self, temp_db, reserva_sample):
         """Inicializar la base de datos debe crear la tabla de reservas."""
-        conn = temp_db.get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("""
-            SELECT name FROM sqlite_master 
-            WHERE type='table' AND name='reservas'
-        """)
-        
-        result = cursor.fetchone()
-        assert result is not None
-        assert result[0] == "reservas"
+        # La tabla ya está inicializada por el fixture
+        # Si la tabla no existe, esta operación fallaría
+        temp_db.crear_reserva(reserva_sample)
+        reserva_recuperada = temp_db.obtener_reserva_por_id(reserva_sample.id)
+        assert reserva_recuperada is not None
+        assert reserva_recuperada['id'] == reserva_sample.id
     
     def test_crear_reserva(self, temp_db, reserva_sample):
         """Crear una reserva debe insertarla en la base de datos."""
@@ -186,57 +181,6 @@ class TestDatabaseManager:
         assert reserva_recuperada['estado'] == datos_originales['estado']
         
         db_nueva.close()
-    
-    def test_datetime_a_utc_iso(self, temp_db):
-        """Convertir datetime a UTC debe retornar string ISO 8601 correcto."""
-        # Crear datetime en Buenos Aires
-        from zoneinfo import ZoneInfo
-        dt_ba = datetime(2026, 11, 2, 10, 0, tzinfo=ZoneInfo("America/Argentina/Buenos_Aires"))
-        
-        iso_utc = temp_db.datetime_a_utc_iso(dt_ba)
-        
-        # 10:00 en BA (-3) = 13:00 en UTC
-        assert iso_utc == "2026-11-02T13:00:00+00:00"
-    
-    def test_datetime_a_utc_iso_sin_zona_horaria_lanza_error(self, temp_db):
-        """Convertir datetime sin zona horaria debe lanzar ValueError."""
-        dt_sin_zona = datetime(2026, 11, 2, 10, 0)
-        
-        with pytest.raises(ValueError, match="debe tener información de zona horaria"):
-            temp_db.datetime_a_utc_iso(dt_sin_zona)
-    
-    def test_iso_utc_a_datetime(self, temp_db):
-        """Convertir string ISO UTC a datetime debe funcionar correctamente."""
-        iso_string = "2026-11-02T13:00:00+00:00"
-        dt = temp_db.iso_utc_a_datetime(iso_string)
-        
-        assert dt.year == 2026
-        assert dt.month == 11
-        assert dt.day == 2
-        assert dt.hour == 13
-        assert dt.minute == 0
-        assert dt.tzinfo == timezone.utc
-    
-    def test_iso_utc_a_datetime_sin_offset(self, temp_db):
-        """Convertir string ISO sin offset debe lanzar ValueError."""
-        iso_string = "2026-11-02T13:00:00"
-        
-        with pytest.raises(ValueError, match="debe incluir explícitamente el offset UTC"):
-            temp_db.iso_utc_a_datetime(iso_string)
-    
-    def test_iso_utc_a_datetime_offset_no_utc(self, temp_db):
-        """Convertir string ISO con offset no UTC debe lanzar ValueError."""
-        # Offset +03:00 (Buenos Aires)
-        iso_string_ba = "2026-11-02T10:00:00+03:00"
-        
-        with pytest.raises(ValueError, match="debe tener offset UTC"):
-            temp_db.iso_utc_a_datetime(iso_string_ba)
-        
-        # Offset -05:00 (New York)
-        iso_string_ny = "2026-11-02T08:00:00-05:00"
-        
-        with pytest.raises(ValueError, match="debe tener offset UTC"):
-            temp_db.iso_utc_a_datetime(iso_string_ny)
     
     def test_cancelar_reserva_conserva_datos(self, temp_db, reserva_sample):
         """Cancelar una reserva debe conservar todos los datos originales."""
